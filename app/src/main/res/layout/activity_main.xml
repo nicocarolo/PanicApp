@@ -1,47 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:theme="@style/AppTheme"
+tools:context="com.example.nico.panicapp.MainActivity">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:theme="@style/AppTheme"
-    tools:context="com.example.nico.panicapp.MainActivity">
-
+    android:layout_weight="1"
+    android:orientation="vertical">
 
     <Button
         android:id="@+id/btnPolicial"
         style="@style/Widget.AppCompat.Button.Colored"
-        android:layout_width="187dp"
-        android:layout_height="207dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:onClick="createPoliceAlarm"
-        android:text="Policial"
-        tools:layout_editor_absoluteX="5dp"
-        tools:layout_editor_absoluteY="16dp" />
+        android:text="Policial"/>
 
     <Button
         android:id="@+id/btnMedica"
-        android:layout_width="187dp"
-        android:layout_height="207dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:onClick="createMedicAlarm"
-        android:text="Medica"
-        tools:layout_editor_absoluteX="193dp"
-        tools:layout_editor_absoluteY="16dp" />
+        android:text="Medica" />
+
+</LinearLayout>
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:orientation="vertical">
 
     <Button
         android:id="@+id/btnGenero"
-        android:layout_width="187dp"
-        android:layout_height="207dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:onClick="createSexAlarm"
-        android:text="Genero"
-        tools:layout_editor_absoluteY="223dp"
-        tools:layout_editor_absoluteX="5dp" />
+        android:text="Genero" />
 
     <Button
         android:id="@+id/btnBomberos"
-        android:layout_width="187dp"
-        android:layout_height="207dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:onClick="createBomberAlarm"
-        android:text="Bomberos"
-        tools:layout_editor_absoluteY="223dp"
-        tools:layout_editor_absoluteX="193dp" />
-</android.support.constraint.ConstraintLayout>
+        android:text="Bomberos" />
+</LinearLayout>
+</LinearLayout>
