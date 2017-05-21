@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:theme="@style/AppTheme"
+    tools:context="com.example.nico.panicapp.MainActivity">
+
+
+    <Button
+        android:id="@+id/btnPolicial"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:layout_width="187dp"
+        android:layout_height="207dp"
+        android:onClick="createPoliceAlarm"
+        android:text="Policial"
+        tools:layout_editor_absoluteX="5dp"
+        tools:layout_editor_absoluteY="16dp" />
+
+    <Button
+        android:id="@+id/btnMedica"
+        android:layout_width="187dp"
+        android:layout_height="207dp"
+        android:onClick="createMedicAlarm"
+        android:text="Medica"
+        tools:layout_editor_absoluteX="193dp"
+        tools:layout_editor_absoluteY="16dp" />
+
+    <Button
+        android:id="@+id/btnGenero"
+        android:layout_width="187dp"
+        android:layout_height="207dp"
+        android:onClick="createSexAlarm"
+        android:text="Genero"
+        tools:layout_editor_absoluteY="223dp"
+        tools:layout_editor_absoluteX="5dp" />
+
+    <Button
+        android:id="@+id/btnBomberos"
+        android:layout_width="187dp"
+        android:layout_height="207dp"
+        android:onClick="createBomberAlarm"
+        android:text="Bomberos"
+        tools:layout_editor_absoluteY="223dp"
+        tools:layout_editor_absoluteX="193dp" />
+</android.support.constraint.ConstraintLayout>
