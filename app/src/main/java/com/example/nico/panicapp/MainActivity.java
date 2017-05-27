@@ -3,7 +3,10 @@ package com.example.nico.panicapp;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Environment;
@@ -12,18 +15,30 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
 import android.Manifest;
 
+import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks,
@@ -31,12 +46,16 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private static final int PERMISSION_ACCESS_FINE_LOCATION = 0;
     private static final int PERMISSION_RECORD_AUDIO = 1;
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 2;
+    private static final int PERMISSION_ACCESS_COARSE_LOCATION = 3;
+    private static final int AUDIO_SECONDS_DURATION = 15;
     private String FIREBASE_URL = "https://panicapp-b4790.firebaseio.com/";
     private String FIREBASE_CHILD = "test";
+    private StorageReference mStorageRef;
     FirebaseDatabase database;
 
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
+    private LocationManager mLocationManager;
 
     private MediaRecorder mRecorder;
     private String mFileName = null;
@@ -46,16 +65,19 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        Firebase.setAndroidContext(this);
-//        firebase = new Firebase(FIREBASE_URL).child(FIREBASE_CHILD);
-
-        // Connect to the Firebase database
         database = FirebaseDatabase.getInstance();
+
+        mStorageRef = FirebaseStorage.getInstance().getReference();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.ACCESS_FINE_LOCATION },
                     PERMISSION_ACCESS_FINE_LOCATION);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.ACCESS_COARSE_LOCATION },
+                    PERMISSION_ACCESS_COARSE_LOCATION);
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -77,94 +99,182 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     }
 
-    public void createPoliceAlarm(View view) {
+    public void createPoliceAlert(View view) {
         // Get a reference to the todoItems child items it the database
-        DatabaseReference myRef = database.getReference("PoliceAlarm");
+        DatabaseReference myRef = database.getReference("PoliceAlert");
         // Create a new child with a auto-generated ID.
         DatabaseReference childRef = myRef.push();
 
-        Map<String, String> alarmData = new HashMap<>();
-        alarmData.put("Latitude", String.valueOf(mLastLocation.getLatitude()));
-        alarmData.put("Longitude", String.valueOf(mLastLocation.getLongitude()));
+        Map<String, String> alertData = new HashMap<>();
+        if (mLastLocation != null){
+            alertData.put("Latitude", String.valueOf(mLastLocation.getLatitude()));
+            alertData.put("Longitude", String.valueOf(mLastLocation.getLongitude()));
+        } else{
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                mLastLocation = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            }
+        }
+        DateFormat df = new SimpleDateFormat("dd/MM/yyyy, HH:mm");
+        String date = df.format(Calendar.getInstance().getTime());
+        alertData.put("Date", date);
 
         // Set the child's data to the value passed in from the text box.
-        childRef.setValue(alarmData);
-        Context context = getApplicationContext();
-        CharSequence text = "Alarma Policial";
-        int duration = Toast.LENGTH_SHORT;
+        childRef.setValue(alertData);
         mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
         mFileName += "/Police-" + childRef.getKey() + ".3gp";
         startRecording(mFileName);
-        new CountDownTimer(60000, 60000) {//countdown Period =5000
+        new CountDownTimer(AUDIO_SECONDS_DURATION*1000, AUDIO_SECONDS_DURATION*1000) {//countdown Period =5000
             @Override
             public void onTick(long millisUntilFinished) {
-//                int duration = Toast.LENGTH_SHORT;
-//                Toast toast = Toast.makeText(getApplicationContext(), "seconds remaining: " + millisUntilFinished / 6000, duration);
-//                toast.show();
             }
 
             public void onFinish() {
                 stopRecording();
-                int duration = Toast.LENGTH_SHORT;
-                Toast toast = Toast.makeText(getApplicationContext(), "Alarma Policial" + " ("
+                uploadFile(mFileName);
+                Toast toast = Toast.makeText(getApplicationContext(), "Alerta Policial" + " ("
                         + String.valueOf(mLastLocation.getLatitude())
                         + " ; "
                         + String.valueOf(mLastLocation.getLongitude())
-                        + ")", duration);
+                        + ")", Toast.LENGTH_LONG);
                 toast.show();
             }
 
         }.start();
     }
 
-    public void createMedicAlarm(View view) {
+    public void createMedicAlert(View view) {
         // Get a reference to the todoItems child items it the database
-        DatabaseReference myRef = database.getReference("MedicAlarm");
+        DatabaseReference myRef = database.getReference("MedicAlert");
         // Create a new child with a auto-generated ID.
         DatabaseReference childRef = myRef.push();
 
-        // Set the child's data to the value passed in from the text box.
-        childRef.setValue("MedicAlarm");
-        Context context = getApplicationContext();
-        CharSequence text = "Alarma Medica!";
-        int duration = Toast.LENGTH_SHORT;
+        Map<String, String> alertData = new HashMap<>();
+        if (mLastLocation != null){
+            alertData.put("Latitude", String.valueOf(mLastLocation.getLatitude()));
+            alertData.put("Longitude", String.valueOf(mLastLocation.getLongitude()));
+        } else{
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                mLastLocation = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            }
+        }
+        DateFormat df = new SimpleDateFormat("dd/MM/yyyy, HH:mm");
+        String date = df.format(Calendar.getInstance().getTime());
+        alertData.put("Date", date);
 
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.show();
+        // Set the child's data to the value passed in from the text box.
+        childRef.setValue(alertData);
+        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mFileName += "/Medic-" + childRef.getKey() + ".3gp";
+        startRecording(mFileName);
+        new CountDownTimer(AUDIO_SECONDS_DURATION*1000, AUDIO_SECONDS_DURATION*1000) {//countdown Period =5000
+            @Override
+            public void onTick(long millisUntilFinished) {
+            }
+
+            public void onFinish() {
+                stopRecording();
+                uploadFile(mFileName);
+                Toast toast = Toast.makeText(getApplicationContext(), "Alerta Medica" + " ("
+                        + String.valueOf(mLastLocation.getLatitude())
+                        + " ; "
+                        + String.valueOf(mLastLocation.getLongitude())
+                        + ")", Toast.LENGTH_LONG);
+                toast.show();
+            }
+
+        }.start();
 
     }
 
-    public void createSexAlarm(View view) {
+    public void createSexAlert(View view) {
         // Get a reference to the todoItems child items it the database
-        DatabaseReference myRef = database.getReference("SexAlarm");
+        DatabaseReference myRef = database.getReference("SexAlert");
         // Create a new child with a auto-generated ID.
         DatabaseReference childRef = myRef.push();
 
-        // Set the child's data to the value passed in from the text box.
-        childRef.setValue("SexAlarm");
-        Context context = getApplicationContext();
-        CharSequence text = "Alarma Genero!";
-        int duration = Toast.LENGTH_SHORT;
+        Map<String, String> alertData = new HashMap<>();
+        if (mLastLocation != null){
+            alertData.put("Latitude", String.valueOf(mLastLocation.getLatitude()));
+            alertData.put("Longitude", String.valueOf(mLastLocation.getLongitude()));
+        } else{
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                mLastLocation = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            }
+        }
+        DateFormat df = new SimpleDateFormat("dd/MM/yyyy, HH:mm");
+        String date = df.format(Calendar.getInstance().getTime());
+        alertData.put("Date", date);
 
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.show();
+        // Set the child's data to the value passed in from the text box.
+        childRef.setValue(alertData);
+        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mFileName += "/Sex-" + childRef.getKey() + ".3gp";
+        startRecording(mFileName);
+        new CountDownTimer(AUDIO_SECONDS_DURATION*1000, AUDIO_SECONDS_DURATION*1000) {//countdown Period =5000
+            @Override
+            public void onTick(long millisUntilFinished) {
+            }
+
+            public void onFinish() {
+                stopRecording();
+                uploadFile(mFileName);
+                Toast toast = Toast.makeText(getApplicationContext(), "Alerta Genero" + " ("
+                        + String.valueOf(mLastLocation.getLatitude())
+                        + " ; "
+                        + String.valueOf(mLastLocation.getLongitude())
+                        + ")", Toast.LENGTH_LONG);
+                toast.show();
+            }
+
+        }.start();
 
     }
 
-    public void createBomberAlarm(View view) {
+    public void createBomberAlert(View view) {
         // Get a reference to the todoItems child items it the database
-        DatabaseReference myRef = database.getReference("BomberAlarm");
+        DatabaseReference myRef = database.getReference("BomberAlert");
         // Create a new child with a auto-generated ID.
         DatabaseReference childRef = myRef.push();
 
-        // Set the child's data to the value passed in from the text box.
-        childRef.setValue("BomberAlarm");
-        Context context = getApplicationContext();
-        CharSequence text = "Alarma Bomberos!";
-        int duration = Toast.LENGTH_SHORT;
+        Map<String, String> alertData = new HashMap<>();
+        if (mLastLocation != null){
+            alertData.put("Latitude", String.valueOf(mLastLocation.getLatitude()));
+            alertData.put("Longitude", String.valueOf(mLastLocation.getLongitude()));
+        } else{
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                mLastLocation = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            }
+        }
+        DateFormat df = new SimpleDateFormat("dd/MM/yyyy, HH:mm");
+        String date = df.format(Calendar.getInstance().getTime());
+        alertData.put("Date", date);
 
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.show();
+        // Set the child's data to the value passed in from the text box.
+        childRef.setValue(alertData);
+        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mFileName += "/Bomber-" + childRef.getKey() + ".3gp";
+        startRecording(mFileName);
+        new CountDownTimer(AUDIO_SECONDS_DURATION*1000, AUDIO_SECONDS_DURATION*1000) {//countdown Period =5000
+            @Override
+            public void onTick(long millisUntilFinished) {
+            }
+
+            public void onFinish() {
+                stopRecording();
+                uploadFile(mFileName);
+                Toast toast = Toast.makeText(getApplicationContext(), "Alerta Bomberos" + " ("
+                        + String.valueOf(mLastLocation.getLatitude())
+                        + " ; "
+                        + String.valueOf(mLastLocation.getLongitude())
+                        + ")", Toast.LENGTH_LONG);
+                toast.show();
+            }
+
+        }.start();
 
     }
 
@@ -183,9 +293,40 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     public void onConnected(@Nullable Bundle bundle) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
+            mLocationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
 
-            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
-                    mGoogleApiClient);
+            LocationListener locationListener = new LocationListener() {
+                public void onLocationChanged(Location location) {
+                    // Called when a new location is found by the network location provider.
+                    mLastLocation = location;
+                    Log.d("Getting Location", location.toString());
+                }
+
+                public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+                public void onProviderEnabled(String provider) {}
+
+                public void onProviderDisabled(String provider) {}
+            };
+
+            // getting GPS status
+            boolean isGPSEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+//
+//            // getting network status
+            boolean isNetworkEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+//
+            if (isGPSEnabled) {
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+//
+            } else{
+                if (isNetworkEnabled) {
+                    mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+//
+                }
+//
+            }
+//            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
+//                    mGoogleApiClient);
         }
     }
 
@@ -251,4 +392,24 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         mRecorder.release();
         mRecorder = null;
     }
+
+    private void uploadFile(String fileName){
+        String[] filenameSplitted = fileName.split("/");
+
+        StorageReference audiosRef = mStorageRef.child("audio/" + filenameSplitted[filenameSplitted.length -1]);
+        Uri file = Uri.fromFile(new File(fileName));
+        UploadTask uploadTask = audiosRef.putFile(file);
+
+        // Register observers to listen for when the download is done or if it fails
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+            }
+        });
+    }
+
 }

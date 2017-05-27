@@ -6,32 +6,39 @@ android:layout_height="match_parent"
 android:theme="@style/AppTheme"
 tools:context="com.example.nico.panicapp.MainActivity">
 
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_weight="1"
-    android:orientation="vertical">
-
-    <Button
-        android:id="@+id/btnPolicial"
-        style="@style/Widget.AppCompat.Button.Colored"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="1"
-        android:onClick="createPoliceAlarm"
-        android:text="Policial"/>
+        android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btnMedica"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:onClick="createMedicAlarm"
-        android:text="Medica" />
+        <ImageButton
+            android:id="@+id/btnPolicial"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:adjustViewBounds="true"
+            android:cropToPadding="true"
+            android:onClick="createPoliceAlert"
+            android:scaleType="fitCenter"
+            android:background="@null"
+            android:src="@drawable/buttonPolice" />
 
-</LinearLayout>
+        <ImageButton
+            android:id="@+id/btnMedica"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="createMedicAlert"
+            android:scaleType="fitCenter"
+            android:background="@null"
+            android:adjustViewBounds="true"
+            android:cropToPadding="true"
+            android:src="@drawable/buttonMedic"/>
 
-<LinearLayout
+    </LinearLayout>
+
+    <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_weight="1"
@@ -42,7 +49,7 @@ tools:context="com.example.nico.panicapp.MainActivity">
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:onClick="createSexAlarm"
+        android:onClick="createSexAlert"
         android:text="Genero" />
 
     <Button
@@ -50,7 +57,7 @@ tools:context="com.example.nico.panicapp.MainActivity">
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:onClick="createBomberAlarm"
+        android:onClick="createBomberAlert"
         android:text="Bomberos" />
 </LinearLayout>
 </LinearLayout>
